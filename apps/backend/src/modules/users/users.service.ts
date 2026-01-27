@@ -1,0 +1,177 @@
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import * as bcrypt from 'bcryptjs';
+import { User } from './schemas/user.schema';
+import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
+import { UserRole } from '../../types/user.types';
+
+/**
+ * Users Service
+ * Handles user CRUD operations and profile management
+ */
+@Injectable()
+export class UsersService {
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  /**
+   * Create a new user
+   * Hashes password before storing
+   */
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    // Check if user exists
+    const existingUser = await this.userModel.findOne({ email: createUserDto.email });
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
+
+    // Create user
+    const user = new this.userModel({
+      ...createUserDto,
+      password: hashedPassword,
+      role: createUserDto.role || UserRole.STUDENT,
+    });
+
+    const savedUser = await user.save();
+    return this.toResponseDto(savedUser);
+  }
+
+  /**
+   * Find user by email (with password for auth)
+   */
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userModel.findOne({ email: email.toLowerCase() }).select('+password');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  /**
+   * Find user by ID
+   */
+  async findById(id: string): Promise<UserResponseDto> {
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.toResponseDto(user);
+  }
+
+  /**
+   * Get user profile (for authenticated user)
+   */
+  async getProfile(userId: string): Promise<UserResponseDto> {
+    return this.findById(userId);
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.userModel.findByIdAndUpdate(userId, updateUserDto, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.toResponseDto(user);
+  }
+
+  /**
+   * Verify password
+   */
+  async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    return bcrypt.compare(plainPassword, hashedPassword);
+  }
+
+  /**
+   * Update refresh token
+   */
+  async updateRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { refreshToken });
+  }
+
+  /**
+   * Clear refresh token
+   */
+  async clearRefreshToken(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { refreshToken: null });
+  }
+
+  /**
+   * Update last login
+   */
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { lastLogin: new Date() });
+  }
+
+  /**
+   * List all users (admin only)
+   */
+  async findAll(skip = 0, limit = 10): Promise<UserResponseDto[]> {
+    const users = await this.userModel.find().skip(skip).limit(limit);
+    return users.map((user) => this.toResponseDto(user));
+  }
+
+  /**
+   * Deactivate user (admin)
+   */
+  async deactivate(userId: string): Promise<UserResponseDto> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { isActive: false },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.toResponseDto(user);
+  }
+
+  /**
+   * Change user role (admin)
+   */
+  async changeRole(userId: string, newRole: UserRole): Promise<UserResponseDto> {
+    const user = await this.userModel.findByIdAndUpdate(userId, { role: newRole }, { new: true });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.toResponseDto(user);
+  }
+
+  /**
+   * Convert Mongoose document to response DTO
+   */
+  private toResponseDto(user: User): UserResponseDto {
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      emailVerified: user.emailVerified,
+      avatar: user.avatar,
+      bio: user.bio,
+      subscriptionTier: user.subscriptionTier,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+}
