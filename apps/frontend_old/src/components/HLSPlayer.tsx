@@ -86,8 +86,14 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ videoId, onQualityChange, onError
       video.addEventListener('loadedmetadata', () => {
         video.play();
       });
+      return () => {
+        // Cleanup for native HLS if needed
+      };
     } else {
       onError?.(new Error('HLS is not supported in this browser'));
+      return () => {
+        // No cleanup needed
+      };
     }
   }, [videoId, onQualityChange, onError]);
 

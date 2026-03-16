@@ -16,13 +16,13 @@ if ! command -v docker &> /dev/null; then
 fi
 echo "  Docker version: $(docker --version)"
 
-# Check Docker Compose
+# Check Docker Compose (using Docker Compose V2 plugin)
 echo "✓ Checking Docker Compose..."
-if ! command -v docker-compose &> /dev/null; then
-    echo "✗ Docker Compose not installed. Please install Docker Compose."
+if ! docker compose version &> /dev/null; then
+    echo "✗ Docker Compose not available. Please install Docker Desktop or Docker Compose V2."
     exit 1
 fi
-echo "  Docker Compose version: $(docker-compose --version)"
+echo "  Docker Compose version: $(docker compose version)"
 
 # Check Node.js
 echo "✓ Checking Node.js..."

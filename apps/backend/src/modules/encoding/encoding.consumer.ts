@@ -20,14 +20,18 @@ export class EncodingConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.consumeEncodingJobs();
+    // Delay consumer initialization to ensure RabbitMQ is connected
+    setTimeout(() => {
+      this.consumeEncodingJobs();
+    }, 5000); // Wait 5 seconds
   }
 
   /**
-   * Consume encoding jobs from queue
+   * Consume encoding jobs from queue with retry logic
    */
   private async consumeEncodingJobs() {
-    await this.rabbitMQService.consume(
+    try {
+      await this.rabbitMQService.consume(
       this.ENCODING_QUEUE,
       async (msg: ConsumeMessage | null) => {
         if (!msg) return;
@@ -71,5 +75,12 @@ export class EncodingConsumer implements OnModuleInit {
     );
 
     this.logger.log(`Encoding consumer started, listening on queue: ${this.ENCODING_QUEUE}`);
+    } catch (error) {
+      this.logger.error(`Failed to start encoding consumer: ${error instanceof Error ? error.message : String(error)}`);
+      // Retry after 5 seconds
+      setTimeout(() => {
+        this.consumeEncodingJobs();
+      }, 5000);
+    }
   }
 }

@@ -152,12 +152,24 @@ export class AuthService {
   }
 
   /**
+   * Validate a raw JWT token (used for refresh token endpoint)
+   */
+  async validateToken(token: string): Promise<ITokenPayload> {
+    try {
+      return this.jwtService.verify<ITokenPayload>(token);
+    } catch (error) {
+      this.logger.warn('Invalid token provided to validateToken');
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+
+  /**
    * Generate JWT tokens (access + refresh)
    */
   private generateTokens(
     userId: string,
     email: string,
-    role: string,
+    role: import('../../types/user.types').UserRole,
   ): { accessToken: string; refreshToken: string } {
     const payload: ITokenPayload = {
       sub: userId,

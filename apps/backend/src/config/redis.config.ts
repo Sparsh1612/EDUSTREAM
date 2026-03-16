@@ -10,11 +10,16 @@ export class RedisService {
   private client: RedisClientType;
 
   async onModuleInit() {
+    const host = process.env.REDIS_HOST || 'localhost';
+    const port = parseInt(process.env.REDIS_PORT || '6379');
+    const password = process.env.REDIS_PASSWORD;
+    const db = parseInt(process.env.REDIS_DB || '0');
+
+    const credentials = password ? `:${password}@` : '';
+    const url = `redis://${credentials}${host}:${port}/${db}`;
+
     this.client = createClient({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0'),
+      url,
       socket: {
         reconnectStrategy: (retries) => Math.min(retries * 50, 500),
       },

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Channel, Connection, connect, ConsumeMessage } from 'amqplib';
+import { Channel, connect, ConsumeMessage } from 'amqplib';
 
 /**
  * RabbitMQ Service
@@ -7,7 +7,7 @@ import { Channel, Connection, connect, ConsumeMessage } from 'amqplib';
  */
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
-  private connection: Connection;
+  private connection: any;
   private channel: Channel;
   private readonly logger = new Logger(RabbitMQService.name);
 
@@ -25,7 +25,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.connection = await connect(url);
       this.channel = await this.connection.createChannel();
 
-      this.connection.on('error', (err) => {
+      this.connection.on('error', (err: Error) => {
         this.logger.error('RabbitMQ connection error:', err);
       });
 
@@ -51,6 +51,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async assertQueue(queue: string, options = {}) {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not initialized');
+    }
     return await this.channel.assertQueue(queue, {
       durable: true,
       ...options,
@@ -95,6 +98,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     callback: (msg: ConsumeMessage | null) => void,
     options = {},
   ) {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not initialized');
+    }
     await this.assertQueue(queue);
     return await this.channel.consume(queue, callback, {
       noAck: false,
@@ -103,14 +109,23 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   ackMessage(message: ConsumeMessage) {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not initialized');
+    }
     this.channel.ack(message);
   }
 
   nackMessage(message: ConsumeMessage, requeue = false) {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not initialized');
+    }
     this.channel.nack(message, false, requeue);
   }
 
   getChannel(): Channel {
+    if (!this.channel) {
+      throw new Error('RabbitMQ channel not initialized');
+    }
     return this.channel;
   }
 }

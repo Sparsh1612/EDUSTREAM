@@ -82,9 +82,11 @@ export class AuthController {
     status: 401,
     description: 'Invalid or expired refresh token',
   })
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @Request() req): Promise<AuthResponseDto> {
-    // Validate refresh token first
-    const payload = await this.authService['validateToken'](refreshTokenDto.refreshToken);
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Request() req: any,
+  ): Promise<AuthResponseDto> {
+    const payload = await this.authService.validateToken(refreshTokenDto.refreshToken);
     return this.authService.refreshToken(payload.sub, refreshTokenDto.refreshToken);
   }
 
@@ -101,7 +103,7 @@ export class AuthController {
     status: 200,
     description: 'Logged out successfully',
   })
-  async logout(@CurrentUser() user): Promise<{ message: string }> {
+  async logout(@CurrentUser() user: any): Promise<{ message: string }> {
     return this.authService.logout(user.id);
   }
 
@@ -118,7 +120,7 @@ export class AuthController {
     status: 200,
     description: 'Current user info',
   })
-  async getCurrentUser(@CurrentUser() user) {
+  async getCurrentUser(@CurrentUser() user: any) {
     return user;
   }
 }

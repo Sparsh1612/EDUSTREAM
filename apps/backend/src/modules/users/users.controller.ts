@@ -28,7 +28,7 @@ export class UsersController {
     description: 'User profile retrieved',
     type: UserResponseDto,
   })
-  async getProfile(@Request() req): Promise<UserResponseDto> {
+  async getProfile(@Request() req: any): Promise<UserResponseDto> {
     return this.usersService.getProfile(req.user.sub);
   }
 
@@ -41,7 +41,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated', type: UserResponseDto })
   async updateProfile(
-    @Request() req,
+    @Request() req: any,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     return this.usersService.updateProfile(req.user.sub, updateUserDto);
