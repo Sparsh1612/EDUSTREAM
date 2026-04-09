@@ -272,21 +272,4 @@ See `/docs` (to be created) for:
 3. Push: `git push origin feature/your-feature`
 4. Create a Pull Request
 
----
 
-## 📄 License
-
-MIT License - See LICENSE file
-
----
-
-## 📞 Support
-
-For issues or questions:
-- Open an issue on GitHub
-- Check existing documentation
-- Review logs: `npm run docker:logs`
-
----
-
-**Built with ❤️ for educators and students worldwide.**
